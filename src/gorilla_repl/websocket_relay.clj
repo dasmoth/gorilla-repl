@@ -5,7 +5,7 @@
 ;;; A websocket handler that passes messages back and forth to an already running nREPL server.
 
 (ns gorilla-repl.websocket-relay
-  (:require [org.httpkit.server :as server]
+  (:require [ring.adapter.jetty9 :as server]
             [clojure.tools.nrepl :as nrepl]
             [cheshire.core :as json]))
 
@@ -26,20 +26,10 @@
     #_(println json-data)
     (server/send! channel json-data)))
 
-(defn- process-message
+(defn process-message
   [channel data]
   (let [parsed-message (assoc (json/parse-string data true) :as-html 1)
         client (nrepl/client @conn Long/MAX_VALUE)
         replies (nrepl/message client parsed-message)]
     ;; send the messages out over the WS connection one-by-one.
     (doall (map (partial send-json-over-ws channel) replies))))
-
-(defn ring-handler
-  "This ring handler expects the client to make a websocket connection to the endpoint. It relays messages back and
-  forth to an nREPL server. A connection to the nREPL server must have previously been made with 'connect-to-nrepl'.
-  Messages are mapped back and forth to JSON as they pass through the relay."
-  [request]
-  (server/with-channel
-    request
-    channel
-    (server/on-receive channel (partial process-message channel))))

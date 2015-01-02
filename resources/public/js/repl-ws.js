@@ -22,7 +22,7 @@ var repl = (function () {
     self.connect = function (successCallback, failureCallback) {
         // hard to believe we have to do this
         var loc = window.location;
-        var url = "ws://" + loc.hostname + ":" + loc.port + "/repl";
+        var url = "ws://" + loc.hostname + ":" + loc.port + "/repl/";  // Jetty requires a trailing '/'
         self.ws = new WebSocket(url);
 
         // we first install a handler that will capture the session id from the clone message. Once it's done its work

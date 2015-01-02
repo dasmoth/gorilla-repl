@@ -6,7 +6,7 @@
   (:use compojure.core)
   (:require [compojure.handler :as handler]
             [compojure.route :as route]
-            [org.httpkit.server :as server]
+            [ring.adapter.jetty9 :as server]
             [ring.middleware.keyword-params :as keyword-params]
             [ring.middleware.params :as params]
             [ring.middleware.json :as json]
@@ -89,10 +89,13 @@
            (GET "/completions" [] (wrap-api-handler completions))
            (GET "/gorilla-files" [] (wrap-api-handler gorilla-files))
            (GET "/config" [] (wrap-api-handler config))
-           (GET "/repl" [] ws-relay/ring-handler)
            (route/resources "/")
            (route/files "/project-files" [:root "."]))
 
+(def ws-handler 
+  {:on-error (fn [ws e]
+               (println e))
+   :on-text ws-relay/process-message})
 
 (defn run-gorilla-server
   [conf]
@@ -114,8 +117,13 @@
     ;; first startup nREPL
     (nrepl/start-and-connect nrepl-requested-port)
     ;; and then the webserver
-    (let [s (server/run-server #'app-routes {:port webapp-requested-port :join? false :ip ip})
-          webapp-port (:local-port (meta s))]
+    (let [s (server/run-jetty 
+             #'app-routes 
+             {:port webapp-requested-port 
+              :join? false 
+              :host ip
+              :websockets {"/repl" ws-handler}})
+          webapp-port (.getLocalPort (first (seq (.getConnectors s))))]
       (spit (doto (io/file ".gorilla-port") .deleteOnExit) webapp-port)
       (println (str "Running at http://" ip ":" webapp-port "/worksheet.html ."))
       (println "Ctrl+C to exit."))))
