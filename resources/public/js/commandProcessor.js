@@ -214,6 +214,15 @@ commandList = [
         }
     },
     {
+        name: "command:evaluator:interrupt",
+        desc: "Interrupt the evalution of this segment, if possible.",
+        showInMenu: true,
+        kb: "ctrl+.",
+        action: function () {
+            eventBus.trigger("worksheet:interrupt");
+        }
+    },
+    {
         name: "command:app:reset-worksheet",
         desc: "Reset the worksheet - a fresh start.",
         showInMenu: true,

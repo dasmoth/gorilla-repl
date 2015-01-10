@@ -64,6 +64,15 @@ var repl = (function () {
         self.sendREPLCommand(message);
     };
 
+    self.interruptEvaluation = function (d) {
+        for (commandID in evaluationMap) {
+            if (evaluationMap.hasOwnProperty(commandID) && evaluationMap[commandID] == d.segmentID) {
+                var message = {'op': 'interrupt', 'interrupt-id': commandID, 'session': self.sessionID};
+                self.sendREPLCommand(message);
+            }
+        }
+    };
+                
     // as well as eval messages, we also send CIDER messages to the nREPL server for things like autocomplete,
     // docs etc. These are handled by the cider-nrepl middleware. We maintain a separate map which maps the ID of the
     // CIDER message to the callback function that we'd like to run on the returned data.

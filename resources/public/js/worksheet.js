@@ -232,6 +232,18 @@ var worksheet = function () {
             self.segments().forEach(evaluateSegment);
         });
 
+        var interruptSegment = function (seg) {
+            if (seg.type == "code") {
+                repl.interruptEvaluation({segmentID: seg.id});
+            }
+        };
+
+        addEventHandler("worksheet:interrupt", function () {
+            var seg = self.getActiveSegment();
+            if (seg == null) return;
+            interruptSegment(seg);
+        });
+
         // messages from the evaluator
 
         addEventHandler("evaluator:value-response", function (e, d) {
