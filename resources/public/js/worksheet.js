@@ -202,6 +202,32 @@ var worksheet = function () {
 
         // * Evaluation *
 
+        // support for "evaluate all".  evaluateAllIndex is the index of the next segment to 
+        // try to evaluate.
+ 
+        var evaluateAllIndex = null;
+        
+        var evaluateNext = function() {
+            if (evaluateAllIndex == null) return;
+            var segs = self.segments();
+            while (evaluateAllIndex < segs.length) {
+                var seg = segs[evaluateAllIndex++];
+                if (seg.type == "code") {
+                    return evaluateSegment(seg);
+                }
+            }
+            // We've run off the end of the array => evaluation is over.
+            evaluateAllIndex = null;
+        };
+            
+
+        var hasRunningSegment = function() {
+            return self.segments().some(function(seg) {
+                if (seg.type == "code")
+                    return seg.runningIndicator();
+            });
+        };
+
         var evaluateSegment = function (seg) {
             // only evaluate code segments
             if (seg.type == "code") {
@@ -218,6 +244,7 @@ var worksheet = function () {
         // The evaluation command will fire this event. The worksheet will then send a message to the evaluator
         // to do the evaluation itself.
         addEventHandler("worksheet:evaluate", function () {
+            if (hasRunningSegment()) return;
             // check that a segment is active
             var seg = self.getActiveSegment();
             if (seg == null) return;
@@ -229,7 +256,9 @@ var worksheet = function () {
         });
 
         addEventHandler("worksheet:evaluate-all", function () {
-            self.segments().forEach(evaluateSegment);
+            if (hasRunningSegment()) return;
+            evaluateAllIndex = 0;
+            evaluateNext();
         });
 
         var interruptSegment = function (seg) {
@@ -274,6 +303,8 @@ var worksheet = function () {
             var segID = d.segmentID;
             var seg = self.getSegmentForID(segID);
             seg.runningIndicator(false);
+            if (evaluateAllIndex != null)
+                evaluateNext();
         });
 
         addEventHandler("evaluator:error-response output:output-error", function (e, d) {
